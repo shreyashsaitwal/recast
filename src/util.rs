@@ -1,6 +1,7 @@
 use std::env::{self, consts};
 use std::path::PathBuf;
 
+/// Returns the Rush's data directory.
 pub fn get_rush_data_dir() -> Option<PathBuf> {
     let os = consts::OS;
 
