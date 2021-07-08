@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use structopt::StructOpt;
 use structopt::clap::AppSettings::ColorAlways;
+use structopt::StructOpt;
 
 mod archive;
 mod dexer;
@@ -29,6 +29,6 @@ fn main() {
 
     if needs_jetification {
         dexer::dex(&base_dir);
-        archive::pack_aix();
+        archive::pack_aix(&base_dir, opts.output.as_path());
     }
 }
