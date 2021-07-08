@@ -1,10 +1,29 @@
+use std::path::PathBuf;
+
+use structopt::StructOpt;
+use structopt::clap::AppSettings::ColorAlways;
+
 mod archive;
 mod dexer;
 mod jetifier;
 mod util;
 
+#[derive(StructOpt, Debug)]
+#[structopt(name = "jetifier", setting(ColorAlways))]
+struct Options {
+    /// Path to AIX file.
+    #[structopt(parse(from_os_str), long, short)]
+    input: PathBuf,
+
+    /// Path to a directory where the jetified AIX should be stored.
+    #[structopt(parse(from_os_str), long, short)]
+    output: PathBuf,
+}
+
 fn main() {
-    let base_dir = archive::extract_aix("./io.shreyash.phase.aix".as_ref(), "./build".as_ref());
+    let opts: Options = Options::from_args();
+
+    let base_dir = archive::extract_aix(opts.input.as_path(), opts.output.as_path());
 
     let needs_jetification = jetifier::jetify(&base_dir);
 

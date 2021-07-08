@@ -6,17 +6,17 @@ use std::{fs, process};
 use zip::ZipArchive;
 
 /// Extracts the extension file and copies it's contents to [output_dir].
-pub fn extract_aix(path: &Path, output_dir: &Path) -> PathBuf {
+pub fn extract_aix(aix_path: &Path, output_dir: &Path) -> PathBuf {
     let output_dir = ensure_dir(output_dir);
 
-    let aix = open_file(path);
+    let aix = open_file(aix_path);
 
     let mut archive = match ZipArchive::new(aix) {
         Ok(zip) => zip,
         Err(err) => {
             eprintln!(
                 "Something went wrong while trying to open the extension file {}",
-                path.display()
+                aix_path.display()
             );
             eprintln!("{:?}", err);
             process::exit(1)
@@ -27,7 +27,7 @@ pub fn extract_aix(path: &Path, output_dir: &Path) -> PathBuf {
     if let Err(err) = archive.extract(output_dir) {
         eprintln!(
             "Something went wrong while trying to open the extension file {}",
-            path.display()
+            aix_path.display()
         );
         eprintln!("{:?}", err);
         process::exit(1)
