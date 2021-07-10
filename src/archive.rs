@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::fs::{File, ReadDir};
+use std::fs::File;
 use std::io::{ErrorKind, Read, Write};
 use std::path::{Path, PathBuf};
 use std::{fs, process};
@@ -38,60 +38,86 @@ pub fn extract_aix(aix_path: &Path, output_dir: &Path) -> PathBuf {
     output_dir.join(base_dir_from_aix(archive))
 }
 
+/// Packs the new jetified AIX in the given output directory.
 pub fn pack_aix(base_dir: &Path, output: &Path) {
-    let base_name = base_dir.file_name().unwrap().to_str().unwrap();
+    let org_name = base_dir.file_name().unwrap().to_str().unwrap();
 
-    let aix_path = output.join(format!("{}.x.aix", base_name));
-    fs::remove_file(aix_path.as_path());
+    // x represents AndroidX...
+    let x_aix_path = output.join(format!("{}.x.aix", org_name));
 
-    let aix = open_file(aix_path.as_path(), true);
+    // If the ...x.aix already exists in the output dir, delete it. Otherwise, the zip writer will
+    // fail.
+    if let Err(err) = fs::remove_file(x_aix_path.as_path()) {
+        eprintln!(
+            "Something went wrong while trying to delete {}",
+            x_aix_path.to_str().unwrap()
+        );
+        eprintln!("{}", err);
+        process::exit(1);
+    }
 
+    // Create the new ...x.aix
+    let aix = open_file(x_aix_path.as_path(), true);
+
+    // Initialize the zip writer
     let mut zip_writer = ZipWriter::new(aix);
 
-    let paths = fs::read_dir(base_dir).unwrap();
+    // Create the AIX
+    let result = archive_from_path(&mut zip_writer, base_dir, base_dir.parent().unwrap());
+    if let Err(err) = result {
+        eprintln!("Something went wrong while trying to pack the extension:");
+        eprintln!("{}", err);
+        process::exit(1);
+    };
 
-    write_to_archive(&mut zip_writer, paths, base_name).unwrap();
+    // Delete the base directory once the extension is packed
+    if let Err(err) = fs::remove_dir_all(base_dir) {
+        eprintln!("Something went wrong:");
+        eprintln!("{}", err);
+        process::exit(1);
+    }
 }
 
-fn write_to_archive(
+/// Recursively generates an archive from the given [path]
+fn archive_from_path(
     zip_writer: &mut ZipWriter<File>,
-    paths: ReadDir,
-    in_zip_parent_dir: &str,
+    path: &Path,
+    output_dir: &Path,
 ) -> Result<(), Box<dyn Error>> {
-    zip_writer.add_directory(in_zip_parent_dir, FileOptions::default())?;
+    if path.is_dir() {
+        // Relative path of the directory from the output directory.
+        let path_rel = path.strip_prefix(output_dir)?.to_str().unwrap();
 
-    for path in paths {
-        let path = path?.path();
+        zip_writer.add_directory(path_rel, FileOptions::default())?;
 
-        if path.is_dir() {
-            let dir_name = path.file_name().unwrap().to_str().unwrap();
+        // List all the entities in this directory
+        let entities = fs::read_dir(path)?;
 
-            let paths = fs::read_dir(&path)?;
+        // Then recursive add all the entities to the archive
+        for entity in entities {
+            let entity_path = entity?.path();
 
-            write_to_archive(
-                zip_writer,
-                paths,
-                &*format!("{}/{}", in_zip_parent_dir, dir_name),
-            )?
-        } else {
-            let file = open_file(path.as_path(), false);
-            let contents = contents(file)?;
-
-            let path_in_archive = format!(
-                "{}/{}",
-                in_zip_parent_dir,
-                path.file_name().unwrap().to_str().unwrap()
-            );
-
-            zip_writer.start_file(path_in_archive, FileOptions::default())?;
-            zip_writer.write_all(contents.as_slice())?;
+            archive_from_path(zip_writer, entity_path.as_path(), output_dir)?;
         }
+    } else {
+        let file = open_file(path, false);
+        let contents = contents_as_bytes(file)?;
+
+        // Relative path of the file from the output directory.
+        let path_rel = path.strip_prefix(output_dir)?.to_str().unwrap();
+
+        // Add this file in the archive
+        zip_writer.start_file(path_rel, FileOptions::default())?;
+
+        // Then write out it's contents
+        zip_writer.write_all(contents.as_slice())?;
     }
 
     Ok(())
 }
 
-fn contents(mut file: File) -> Result<Vec<u8>, Box<dyn Error>> {
+/// Reads the given file and returns it's contents as bytes.
+fn contents_as_bytes(mut file: File) -> Result<Vec<u8>, Box<dyn Error>> {
     let metadata = file.metadata()?;
 
     let mut contents: Vec<u8> = Vec::with_capacity(metadata.len() as usize + 1);
@@ -139,24 +165,23 @@ fn open_file(path: &Path, create_if_req: bool) -> File {
                         }
                     }
                 } else {
-                    eprintln!("Extension file {} not found", path.display());
+                    eprintln!("File {} not found", path.display());
                     process::exit(2);
                 }
             }
             ErrorKind::PermissionDenied => {
                 eprintln!(
-                    "Permission denied; unable to access extension file {}",
+                    "Permission denied; unable to access file {}",
                     path.display()
                 );
                 process::exit(2);
             }
             _ => {
                 eprintln!(
-                    "Something went wrong while trying to open the extension file {}",
+                    "Something went wrong while trying to open the file {}",
                     path.display()
                 );
-                eprintln!("{}", err);
-                process::exit(2);
+                panic!("Something went wrong:\n{}", err);
             }
         },
     }

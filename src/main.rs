@@ -9,13 +9,15 @@ mod jetifier;
 mod util;
 
 #[derive(StructOpt, Debug)]
-#[structopt(name = "jetifier", setting(ColorAlways))]
+#[structopt(name = "recast", setting(ColorAlways))]
+/// Recast makes your old extensions compatible with the latest versions of Kodular and MIT AI2 by
+/// migrating them to new AndroidX libraries.
 struct Options {
-    /// Path to AIX file.
+    /// Path to an extension file (.aix) or a directory containing multiple extension files.
     #[structopt(parse(from_os_str), long, short)]
     input: PathBuf,
 
-    /// Path to a directory where the jetified AIX should be stored.
+    /// Path to a directory where the new recasted extension file(s) should be stored.
     #[structopt(parse(from_os_str), long, short)]
     output: PathBuf,
 }
