@@ -26,7 +26,9 @@ struct Options {
 }
 
 fn main() {
-    ansi_term::enable_ansi_support().unwrap();
+    if cfg!(windows) {
+        ansi_term::enable_ansi_support().unwrap();
+    }
 
     let opts: Options = Options::from_args();
     let output_dir = opts.output;

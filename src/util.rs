@@ -1,12 +1,10 @@
-use std::env::{self, consts};
+use std::env;
 use std::error::Error;
 use std::path::{Path, PathBuf};
 
 /// Returns the Rush's data directory.
 pub fn rush_data_dir() -> Option<PathBuf> {
-    let os = consts::OS;
-
-    if os == "windows" {
+    if cfg!(windows) {
         let user = env::var("UserProfile").unwrap();
         let path = Path::new(&user)
             .join("AppData")
@@ -14,12 +12,12 @@ pub fn rush_data_dir() -> Option<PathBuf> {
             .join("rush");
 
         Some(path)
-    } else if os == "macos" {
+    } else if cfg!(macos) {
         let home = env::var("HOME").unwrap();
         let path = Path::new(&home).join("Library").join("Application Support");
 
         Some(path)
-    } else if os == "linux" {
+    } else if cfg!(linux) {
         let home = env::var("HOME").unwrap();
         Some(PathBuf::from(home))
     } else {
