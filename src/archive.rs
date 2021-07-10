@@ -7,9 +7,11 @@ use std::{fs, process};
 use zip::write::FileOptions;
 use zip::{ZipArchive, ZipWriter};
 
-/// Extracts the extension file and copies it's contents to [output_dir].
-pub fn extract_aix(aix_path: &Path, output_dir: &Path) -> PathBuf {
-    let output_dir = ensure_dir(output_dir);
+use crate::util;
+
+/// Extracts the extension file and copies it's contents to [build_dir].
+pub fn extract_aix(aix_path: &Path) -> PathBuf {
+    let output_dir = util::build_dir_path().unwrap();
 
     let aix = open_file(aix_path, false);
 
@@ -26,7 +28,7 @@ pub fn extract_aix(aix_path: &Path, output_dir: &Path) -> PathBuf {
     };
 
     // Extract the aix file
-    if let Err(err) = archive.extract(output_dir) {
+    if let Err(err) = archive.extract(&output_dir) {
         eprintln!(
             "Something went wrong while trying to open the extension file {}",
             aix_path.display()
@@ -39,21 +41,20 @@ pub fn extract_aix(aix_path: &Path, output_dir: &Path) -> PathBuf {
 }
 
 /// Packs the new jetified AIX in the given output directory.
-pub fn pack_aix(base_dir: &Path, output: &Path) {
+pub fn pack_aix(base_dir: &Path, output_dir: &Path) {
     let org_name = base_dir.file_name().unwrap().to_str().unwrap();
 
     // x represents AndroidX...
-    let x_aix_path = output.join(format!("{}.x.aix", org_name));
+    let x_aix_path = output_dir.join(format!("{}.x.aix", org_name));
 
-    // If the ...x.aix already exists in the output dir, delete it. Otherwise, the zip writer will
-    // fail.
-    if let Err(err) = fs::remove_file(x_aix_path.as_path()) {
+    // If the ...x.aix already exists in the output dir, return.
+    if x_aix_path.exists() {
         eprintln!(
-            "Something went wrong while trying to delete {}",
-            x_aix_path.to_str().unwrap()
+            "Unable to generate {} because a file with similar name already exists in {}\nSkipping...",
+            x_aix_path.to_str().unwrap(),
+            output_dir.to_str().unwrap()
         );
-        eprintln!("{}", err);
-        process::exit(1);
+        return;
     }
 
     // Create the new ...x.aix
@@ -125,29 +126,6 @@ fn contents_as_bytes(mut file: File) -> Result<Vec<u8>, Box<dyn Error>> {
     file.read_to_end(&mut contents)?;
 
     Ok(contents)
-}
-
-/// Creates the build directory if it doesn't already exists.
-fn ensure_dir(path: &Path) -> &Path {
-    // Create the directory if it doesn't already exists.
-    if !path.exists() {
-        match fs::create_dir_all(path) {
-            Ok(_) => {}
-            Err(err) => {
-                eprintln!("Something went wrong");
-                eprintln!("{}", err);
-                process::exit(1);
-            }
-        };
-    }
-
-    // Exit if `path` is not a path to a directory.
-    if !path.is_dir() {
-        eprintln!("{} is not a directory", path.display());
-        process::exit(1);
-    }
-
-    path
 }
 
 /// Opens and returns the file from [path].
