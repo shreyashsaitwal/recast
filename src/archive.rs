@@ -1,11 +1,12 @@
+use std::{fs, process};
 use std::error::Error;
 use std::fs::File;
 use std::io::{ErrorKind, Read, Write};
 use std::path::{Path, PathBuf};
-use std::{fs, process};
 
-use zip::write::FileOptions;
+use ansi_term::Color::Red;
 use zip::{ZipArchive, ZipWriter};
+use zip::write::FileOptions;
 
 use crate::util;
 
@@ -19,22 +20,24 @@ pub fn extract_aix(aix_path: &Path) -> PathBuf {
         Ok(zip) => zip,
         Err(err) => {
             eprintln!(
-                "Something went wrong while trying to open the extension file {}",
-                aix_path.display()
+                "     {} Unable to open {}. Reason: {}",
+                Red.paint("error"),
+                aix_path.to_str().unwrap(),
+                err.to_string()
             );
-            eprintln!("{:?}", err);
-            process::exit(1)
+            process::exit(1);
         }
     };
 
     // Extract the aix file
     if let Err(err) = archive.extract(&output_dir) {
         eprintln!(
-            "Something went wrong while trying to open the extension file {}",
-            aix_path.display()
+            "     {} Unable to extract {}. Reason: {}",
+            Red.paint("error"),
+            aix_path.to_str().unwrap(),
+            err.to_string()
         );
-        eprintln!("{:?}", err);
-        process::exit(1)
+        process::exit(1);
     }
 
     output_dir.join(base_dir_from_aix(archive))
@@ -47,14 +50,17 @@ pub fn pack_aix(base_dir: &Path, output_dir: &Path) {
     // x represents AndroidX...
     let x_aix_path = output_dir.join(format!("{}.x.aix", org_name));
 
-    // If the ...x.aix already exists in the output dir, return.
+    // If the ...x.aix already exists in the output dir, delete it.
     if x_aix_path.exists() {
-        eprintln!(
-            "Unable to generate {} because a file with similar name already exists in {}\nSkipping...",
-            x_aix_path.to_str().unwrap(),
-            output_dir.to_str().unwrap()
-        );
-        return;
+        if let Err(err) = fs::remove_file(x_aix_path.as_path()) {
+            eprintln!(
+                "     {} Unable to create {}. Reason: {}",
+                Red.paint("error"),
+                x_aix_path.as_path().to_str().unwrap(),
+                err.to_string()
+            );
+            process::exit(1);
+        }
     }
 
     // Create the new ...x.aix
@@ -66,17 +72,17 @@ pub fn pack_aix(base_dir: &Path, output_dir: &Path) {
     // Create the AIX
     let result = archive_from_path(&mut zip_writer, base_dir, base_dir.parent().unwrap());
     if let Err(err) = result {
-        eprintln!("Something went wrong while trying to pack the extension:");
-        eprintln!("{}", err);
+        eprintln!(
+            "     {} Unable to create {}. Reason: {}",
+            Red.paint("error"),
+            x_aix_path.as_path().to_str().unwrap(),
+            err.to_string()
+        );
         process::exit(1);
     };
 
     // Delete the base directory once the extension is packed
-    if let Err(err) = fs::remove_dir_all(base_dir) {
-        eprintln!("Something went wrong:");
-        eprintln!("{}", err);
-        process::exit(1);
-    }
+    fs::remove_dir_all(base_dir).unwrap();
 }
 
 /// Recursively generates an archive from the given [path]
@@ -138,28 +144,32 @@ fn open_file(path: &Path, create_if_req: bool) -> File {
                     match File::create(path) {
                         Ok(file) => file,
                         Err(err) => {
-                            eprintln!("Unable to create file {}; reason: {}", path.display(), err);
-                            process::exit(2);
+                            eprintln!(
+                                "     {} Unable to create file {}. Reason: {}",
+                                Red.paint("error"),
+                                path.to_str().unwrap(),
+                                err.to_string()
+                            );
+                            process::exit(1);
                         }
                     }
                 } else {
-                    eprintln!("File {} not found", path.display());
+                    eprintln!(
+                        "     {} File {} not found",
+                        Red.paint("error"),
+                        path.to_str().unwrap()
+                    );
                     process::exit(2);
                 }
             }
-            ErrorKind::PermissionDenied => {
-                eprintln!(
-                    "Permission denied; unable to access file {}",
-                    path.display()
-                );
-                process::exit(2);
-            }
             _ => {
                 eprintln!(
-                    "Something went wrong while trying to open the file {}",
-                    path.display()
+                    "     {} Unable to open file {}. Reason: {}",
+                    Red.paint("error"),
+                    path.to_str().unwrap(),
+                    err.to_string()
                 );
-                panic!("Something went wrong:\n{}", err);
+                process::exit(1);
             }
         },
     }

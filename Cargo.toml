@@ -6,3 +6,4 @@ edition = "2018"
 [dependencies]
 zip = "0.5.13"
 structopt = "0.3.22"
+ansi_term = "0.12.1"

@@ -2,6 +2,8 @@ use std::path::{Path, PathBuf};
 use std::process;
 use std::process::Command;
 
+use ansi_term::Color::Red;
+
 use crate::util;
 
 /// Replaces the old `classes.jar` with a DEXed version of the jetified `AndroidRuntime.jar`.
@@ -27,13 +29,24 @@ pub fn dex(base_dir: &Path) {
 
     // If the D8 process wasn't successful, print the output and exit.
     if !output.status.success() {
-        eprintln!("Something quite unexpected happened while trying to dex the extension:");
-
         if !output.stderr.is_empty() {
-            eprintln!("{}", String::from_utf8(output.stderr).unwrap());
+            eprintln!(
+                "     {} {}",
+                Red.paint("error"),
+                String::from_utf8(output.stderr)
+                    .unwrap()
+                    .replace("\n", "\n        ")
+            );
         }
+
         if !output.stdout.is_empty() {
-            eprintln!("{}", String::from_utf8(output.stdout).unwrap());
+            eprintln!(
+                "     {} {}",
+                Red.paint("error"),
+                String::from_utf8(output.stdout)
+                    .unwrap()
+                    .replace("\n", "\n        ")
+            );
         }
 
         process::exit(1);
@@ -52,8 +65,12 @@ fn d8_path() -> PathBuf {
 /// Deletes old, non-jetified, `classes.jar`.
 fn remove_old_classes_jar(classes_jar: &Path) {
     if let Err(err) = std::fs::remove_file(classes_jar) {
-        eprintln!("Something went wrong while trying to remove `classes.jar`:");
-        eprintln!("{}", err);
+        eprintln!(
+            "     {} Unable to delete {}. Reason: {}",
+            Red.paint("error"),
+            classes_jar.to_str().unwrap(),
+            err.to_string()
+        );
         process::exit(1);
     }
 }

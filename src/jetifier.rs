@@ -1,8 +1,10 @@
 use std::path::{Path, PathBuf};
+use std::process;
 use std::process::Command;
 
+use ansi_term::Color::Red;
+
 use crate::util;
-use std::process;
 
 const NO_REF_WARN: &str = "WARNING: [Main] No references were rewritten.";
 
@@ -22,13 +24,24 @@ pub fn jetify(base_dir: &Path) -> bool {
     let output = Command::new(jetifer_path()).args(&args).output().unwrap();
 
     if !output.status.success() {
-        eprintln!("Something quite unexpected happened while trying to jetify the extension:");
-
         if !output.stderr.is_empty() {
-            eprintln!("{}", String::from_utf8(output.stderr).unwrap());
+            eprintln!(
+                "     {} {}",
+                Red.paint("error"),
+                String::from_utf8(output.stderr)
+                    .unwrap()
+                    .replace("\n", "\n        ")
+            );
         }
+
         if !output.stdout.is_empty() {
-            eprintln!("{}", String::from_utf8(output.stdout).unwrap());
+            eprintln!(
+                "     {} {}",
+                Red.paint("error"),
+                String::from_utf8(output.stdout)
+                    .unwrap()
+                    .replace("\n", "\n        ")
+            );
         }
 
         process::exit(1);
@@ -39,12 +52,7 @@ pub fn jetify(base_dir: &Path) -> bool {
 
     // If output contains `NO_REF_WARN`, it means that the extension classes has no references to
     // the support library. No need to further process th extension.
-    if output_as_str.contains(NO_REF_WARN) {
-        println!("You don't need to jetify your extension.");
-        false
-    } else {
-        true
-    }
+    !output_as_str.contains(NO_REF_WARN)
 }
 
 /// Returns the path to the platform specific jetifier standalone script.

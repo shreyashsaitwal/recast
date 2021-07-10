@@ -16,10 +16,8 @@ pub fn rush_data_dir() -> Option<PathBuf> {
         Some(path)
     } else if os == "macos" {
         let home = env::var("HOME").unwrap();
-        let path = Path::new(&home)
-            .join("Library")
-            .join("Application Support");
-        
+        let path = Path::new(&home).join("Library").join("Application Support");
+
         Some(path)
     } else if os == "linux" {
         let home = env::var("HOME").unwrap();
