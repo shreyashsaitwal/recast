@@ -7,12 +7,14 @@ use ansi_term::Color::Red;
 
 /// Returns the Recast's data directory.
 pub fn data_dir() -> PathBuf {
-    Path::new(&env::var("HOME").unwrap()).join(".recast")
+    let home = if cfg!(windows) { "UserProfile" } else { "HOME" };
+    Path::new(&env::var(home).unwrap()).join(".recast")
 }
 
 /// Spawns the [program] and passes [args] to it. Exits if the process doesn't completes successfully.
-pub fn spawn_process<I, S>(program: &Path, args: I) -> Output
+pub fn spawn_process<P, I, S>(program: P, args: I) -> Output
 where
+    P: AsRef<OsStr>,
     I: IntoIterator<Item = S>,
     S: AsRef<OsStr>,
 {

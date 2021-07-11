@@ -23,7 +23,7 @@ pub fn dex(base_dir: &Path) {
         art_jar.to_str().unwrap(),
     ];
 
-    util::spawn_process(d8_path.as_path(), &args);
+    util::spawn_process("java", &args);
 }
 
 /// Returns the path to `d8.jar` stored in Rush's data directory.
