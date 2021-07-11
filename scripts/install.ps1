@@ -1,11 +1,17 @@
 #!/usr/bin/env pwsh
 
+$ErrorActionPreference = 'Stop'
+
 $ZipUrl = "https://github.com/shreyashsaitwal/recast/releases/latest/download/recast-x86_64-pc-windows-msvc.zip"
 
 # Required by GitHub
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $DataDir = "$HOME/.recast"
+if (!(Test-Path $DataDir)) {
+    New-Item $DataDir -ItemType Directory | Out-Null
+}
+
 $ZipFile = "$DataDir/recast-x86_64-pc-windows-msvc.zip"
 
 # Download ZIP
