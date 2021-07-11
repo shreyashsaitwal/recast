@@ -34,10 +34,14 @@ jobs:
       - name: Pack
         shell: bash
         run: |
-          if [ "$OS" = "Windows_NT" ]; then EXE="target/release/recast.exe"; else EXE="target/release/recast"; fi
           mkdir bin
-          cp "$EXE" bin
-          zip recast-${{ matrix.target }}.zip bin tools
+          if [ "$OS" = "Windows_NT" ]; then
+            cp target/release/recast.exe bin
+            7z a recast-${{ matrix.target }}.zip bin tools
+          else
+            cp target/release/recast bin
+            zip -r recast-${{ matrix.target }}.zip bin tools
+          fi
 
       - name: Release
         uses: softprops/action-gh-release@v1
