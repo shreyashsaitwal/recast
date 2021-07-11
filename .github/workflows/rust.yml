@@ -30,3 +30,20 @@ jobs:
 
       - name: Build
         run: cargo build --verbose --release
+
+      - name: Pack
+        shell: bash
+        run: |
+          if [ "$OS" = "Windows_NT" ]; then EXE="target/release/recast.exe"; else EXE="target/release/recast"; fi
+          mkdir bin
+          cp "$EXE" bin
+          zip recast-${{ matrix.target }}.zip bin tools
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          tag_name: draft
+          files: recast-${{ matrix.target }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
