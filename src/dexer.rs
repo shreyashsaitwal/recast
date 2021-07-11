@@ -26,7 +26,7 @@ pub fn dex(base_dir: &Path) {
     util::spawn_process("java", &args);
 }
 
-/// Returns the path to `d8.jar` stored in Rush's data directory.
+/// Returns the path to `d8.jar` stored in Recast's data directory.
 fn d8_path() -> PathBuf {
     util::data_dir()
         .join("tools")

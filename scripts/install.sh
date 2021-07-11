@@ -26,9 +26,9 @@ fi
 zipUrl="https://github.com/shreyashsaitwal/recast/releases/latest/download/recast-$target.zip"
 
 # Download and unzip recast-$target.zip
-curl --location --progress-bar -o "$dataDir/rush-$target.zip" "$zipUrl"
-unzip -oq "$dataDir/rush-$target.zip" -d "$dataDir"
-rm "$dataDir/rush-$target.zip"
+curl --location --progress-bar -o "$dataDir/recast-$target.zip" "$zipUrl"
+unzip -oq "$dataDir/recast-$target.zip" -d "$dataDir"
+rm "$dataDir/recast-$target.zip"
 
 # Give all the necessary scripts execution permission
 chmod +x "$dataDir/bin/recast"
@@ -39,7 +39,7 @@ green='\033[0;32m'
 reset='\033[0m'
 
 echo
-echo "${green}Success!${reset} Installed Rush at $dataDir/bin/recast"
+echo "${green}Success!${reset} Installed Recast at $dataDir/bin/recast"
 if ! command -v recast >/dev/null; then
   if [ "$OS" = "Windows_NT" ]; then
     echo
@@ -55,11 +55,11 @@ if ! command -v recast >/dev/null; then
     edge=$(echo " $exp " | sed 's/./-/g')
 
     echo
-    echo "Now, manually add Rush's bin directory to your \$HOME/$shell_profile (or similar):"
+    echo "Now, manually add Recast's bin directory to your \$HOME/$shell_profile (or similar):"
     echo "$edge"
     echo "|${cyan}${exp}${reset}|"
     echo "$edge"
   fi
 fi
 echo
-echo "Run ${cyan}rush --help${reset} to get started."
+echo "Run ${cyan}recast --help${reset} to get started."
