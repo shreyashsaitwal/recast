@@ -1,6 +1,5 @@
 use std::path::{Path, PathBuf};
 use std::process;
-use std::process::Command;
 
 use ansi_term::Color::Red;
 
@@ -24,41 +23,13 @@ pub fn dex(base_dir: &Path) {
         art_jar.to_str().unwrap(),
     ];
 
-    // Spawn the D8 process and collect it's output.
-    let output = Command::new("java").args(&args).output().unwrap();
-
-    // If the D8 process wasn't successful, print the output and exit.
-    if !output.status.success() {
-        if !output.stderr.is_empty() {
-            eprintln!(
-                "     {} {}",
-                Red.paint("error"),
-                String::from_utf8(output.stderr)
-                    .unwrap()
-                    .replace("\n", "\n        ")
-            );
-        }
-
-        if !output.stdout.is_empty() {
-            eprintln!(
-                "     {} {}",
-                Red.paint("error"),
-                String::from_utf8(output.stdout)
-                    .unwrap()
-                    .replace("\n", "\n        ")
-            );
-        }
-
-        process::exit(1);
-    }
+    util::spawn_process(d8_path.as_path(), &args);
 }
 
 /// Returns the path to `d8.jar` stored in Rush's data directory.
 fn d8_path() -> PathBuf {
-    util::rush_data_dir()
-        .unwrap()
+    util::data_dir()
         .join("tools")
-        .join("other")
         .join("d8.jar")
 }
 

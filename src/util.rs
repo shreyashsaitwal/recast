@@ -1,38 +1,46 @@
-use std::env;
-use std::error::Error;
+use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
+use std::process::{Command, Output};
+use std::{env, process};
 
-/// Returns the Rush's data directory.
-pub fn rush_data_dir() -> Option<PathBuf> {
-    if cfg!(windows) {
-        let user = env::var("UserProfile").unwrap();
-        let path = Path::new(&user)
-            .join("AppData")
-            .join("Roaming")
-            .join("rush");
+use ansi_term::Color::Red;
 
-        Some(path)
-    } else if cfg!(macos) {
-        let home = env::var("HOME").unwrap();
-        let path = Path::new(&home).join("Library").join("Application Support");
-
-        Some(path)
-    } else if cfg!(linux) {
-        let home = env::var("HOME").unwrap();
-        Some(PathBuf::from(home))
-    } else {
-        None
-    }
+/// Returns the Recast's data directory.
+pub fn data_dir() -> PathBuf {
+    Path::new(&env::var("HOME").unwrap()).join(".recast")
 }
 
-/// Returns path to Recast's build dir
-pub fn build_dir_path() -> Result<PathBuf, Box<dyn Error>> {
-    // Get the base data directory using Rush's data directory
-    let data_dir = rush_data_dir().unwrap();
-    let data_dir = data_dir.parent().unwrap();
+/// Spawns the [program] and passes [args] to it. Exits if the process doesn't completes successfully.
+pub fn spawn_process<I, S>(program: &Path, args: I) -> Output
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    let output = Command::new(program).args(args).output().unwrap();
 
-    let build_dir = data_dir.join("recast").join("temp");
-    std::fs::create_dir_all(&build_dir)?;
+    if !output.status.success() {
+        if !output.stderr.is_empty() {
+            eprintln!(
+                "     {} {}",
+                Red.paint("error"),
+                String::from_utf8(output.stderr)
+                    .unwrap()
+                    .replace("\n", "\n        ")
+            );
+        }
 
-    Ok(build_dir)
+        if !output.stdout.is_empty() {
+            eprintln!(
+                "     {} {}",
+                Red.paint("error"),
+                String::from_utf8(output.stdout)
+                    .unwrap()
+                    .replace("\n", "\n        ")
+            );
+        }
+
+        process::exit(1);
+    }
+
+    output
 }

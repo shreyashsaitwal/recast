@@ -1,8 +1,4 @@
 use std::path::{Path, PathBuf};
-use std::process;
-use std::process::Command;
-
-use ansi_term::Color::Red;
 
 use crate::util;
 
@@ -21,31 +17,7 @@ pub fn jetify(base_dir: &Path) -> bool {
     ];
 
     // Spawn the jetifier standalone and collect it's output
-    let output = Command::new(jetifer_path()).args(&args).output().unwrap();
-
-    if !output.status.success() {
-        if !output.stderr.is_empty() {
-            eprintln!(
-                "     {} {}",
-                Red.paint("error"),
-                String::from_utf8(output.stderr)
-                    .unwrap()
-                    .replace("\n", "\n        ")
-            );
-        }
-
-        if !output.stdout.is_empty() {
-            eprintln!(
-                "     {} {}",
-                Red.paint("error"),
-                String::from_utf8(output.stdout)
-                    .unwrap()
-                    .replace("\n", "\n        ")
-            );
-        }
-
-        process::exit(1);
-    }
+    let output = util::spawn_process(jetifer_path().as_path(), &args);
 
     // Convert output to string
     let output_as_str = String::from_utf8(output.stdout).unwrap();
@@ -57,8 +29,7 @@ pub fn jetify(base_dir: &Path) -> bool {
 
 /// Returns the path to the platform specific jetifier standalone script.
 fn jetifer_path() -> PathBuf {
-    let bin_dir = util::rush_data_dir()
-        .unwrap()
+    let bin_dir = util::data_dir()
         .join("tools")
         .join("jetifier-standalone")
         .join("bin");

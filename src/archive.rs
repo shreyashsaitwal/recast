@@ -12,7 +12,7 @@ use crate::util;
 
 /// Extracts the extension file and copies it's contents to [build_dir].
 pub fn extract_aix(aix_path: &Path) -> PathBuf {
-    let output_dir = util::build_dir_path().unwrap();
+    let output_dir = util::data_dir().join("temp");
 
     let aix = open_file(aix_path, false);
 

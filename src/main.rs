@@ -26,9 +26,8 @@ struct Options {
 }
 
 fn main() {
-    if cfg!(windows) {
-        ansi_term::enable_ansi_support().unwrap();
-    }
+    #[cfg(target_os = "windows")]
+    ansi_term::enable_ansi_support().unwrap();
 
     let opts: Options = Options::from_args();
     let output_dir = opts.output;
