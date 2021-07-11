@@ -12,28 +12,21 @@ env:
 jobs:
   build:
     name: Build (${{ matrix.target}})
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: true
       matrix:
-        target:
-        - x86_64-pc-windows-msvc
-        - x86_64-apple-darwin
-        - aarch64-apple-darwin
-        - x86_64-unknown-linux-gnu
+        include:
+        - os: windows-latest
+          target: x86_64-pc-windows-msvc
+        - os: macos-latest
+          target: x86_64-apple-darwin
+        - os: ubuntu-latest
+          target: x86_64-unknown-linux-gnu
 
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: ${{ matrix.target }}
-          override: true
 
-      - name: Compile binary
-        uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: build
-          args: --target "${{ matrix.target }}" --release
+      - name: Build
+        run: cargo build --verbose --release
