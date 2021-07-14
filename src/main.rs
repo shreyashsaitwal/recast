@@ -21,7 +21,7 @@ struct Options {
     input: PathBuf,
 
     /// Path to a directory where the new recasted extension file(s) should be stored.
-    #[structopt(parse(from_os_str), long, short)]
+    #[structopt(parse(from_os_str), long, short, default_value = ".")]
     output: PathBuf,
 }
 
