@@ -40,7 +40,7 @@ if ! command -v recast >/dev/null; then
   if [ "$OS" = "Windows_NT" ]; then
     echo
     echo "Now, add the following entry to your 'PATH' environment variable:"
-    echo "$dataDir/bin"
+    exp=" $dataDir/bin "
   else
     case $SHELL in
       /bin/zsh) shell_profile=".zshrc" ;;
@@ -48,14 +48,14 @@ if ! command -v recast >/dev/null; then
     esac
 
     exp=" export PATH=\"\$PATH:$dataDir/bin\" "
-    edge=$(echo " $exp " | sed 's/./-/g')
-
     echo
     echo "Now, manually add Recast's bin directory to your \$HOME/$shell_profile (or similar):"
+  fi
+
+    edge=$(echo " $exp " | sed 's/./-/g')
     echo "$edge"
     echo "|$exp|"
     echo "$edge"
-  fi
 fi
 echo
 echo "Run recast --help to get started."
