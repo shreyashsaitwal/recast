@@ -34,17 +34,13 @@ rm "$dataDir/recast-$target.zip"
 chmod +x "$dataDir/bin/recast"
 chmod +x "$dataDir/tools/jetifier-standalone/bin/jetifier-standalone"
 
-cyan='\033[0;36m'
-green='\033[0;32m'
-reset='\033[0m'
-
 echo
-echo "${green}Success!${reset} Installed Recast at $dataDir/bin/recast"
+echo "Success! Installed Recast at $dataDir/bin/recast"
 if ! command -v recast >/dev/null; then
   if [ "$OS" = "Windows_NT" ]; then
     echo
     echo "Now, add the following entry to your 'PATH' environment variable:"
-    echo "${cyan}$dataDir/bin${reset}"
+    echo "$dataDir/bin"
   else
     case $SHELL in
       /bin/zsh) shell_profile=".zshrc" ;;
@@ -57,9 +53,9 @@ if ! command -v recast >/dev/null; then
     echo
     echo "Now, manually add Recast's bin directory to your \$HOME/$shell_profile (or similar):"
     echo "$edge"
-    echo "|${cyan}${exp}${reset}|"
+    echo "|$exp|"
     echo "$edge"
   fi
 fi
 echo
-echo "Run ${cyan}recast --help${reset} to get started."
+echo "Run recast --help to get started."
