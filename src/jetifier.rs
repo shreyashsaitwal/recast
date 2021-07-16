@@ -4,8 +4,8 @@ use crate::util;
 
 const NO_REF_WARN: &str = "WARNING: [Main] No references were rewritten.";
 
-/// Jetifies the AndroidRuntime.jar, i.e., migrates any references to the support library packages
-/// to their AndroidX equivalent.
+/// Jetifies the AndroidRuntime.jar, i.e., migrates any references to the support
+///  library packages to their AndroidX equivalent.
 pub fn jetify(base_dir: &Path) -> bool {
     let art_jar = base_dir.join("files").join("AndroidRuntime.jar");
 
@@ -22,8 +22,9 @@ pub fn jetify(base_dir: &Path) -> bool {
     // Convert output to string
     let output_as_str = String::from_utf8(output.stdout).unwrap();
 
-    // If output contains `NO_REF_WARN`, it means that the extension classes has no references to
-    // the support library. No need to further process th extension.
+    // If output contains `NO_REF_WARN`, it means that the extension classes has
+    // no references to the support library. No need to further process the
+    //  extension.
     !output_as_str.contains(NO_REF_WARN)
 }
 

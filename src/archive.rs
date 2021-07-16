@@ -1,12 +1,12 @@
-use std::{fs, process};
 use std::error::Error;
 use std::fs::File;
 use std::io::{ErrorKind, Read, Write};
 use std::path::{Path, PathBuf};
+use std::{fs, process};
 
 use ansi_term::Color::Red;
-use zip::{ZipArchive, ZipWriter};
 use zip::write::FileOptions;
+use zip::{ZipArchive, ZipWriter};
 
 use crate::util;
 
@@ -95,7 +95,9 @@ fn archive_from_path(
         // Relative path of the directory from the output directory.
         let path_rel = path.strip_prefix(output_dir)?.to_str().unwrap();
 
-        zip_writer.add_directory(path_rel, FileOptions::default())?;
+        // `\` must be replaced with `/` otherwise the builder won't be able to
+        // locate files.
+        zip_writer.add_directory(path_rel.replace("\\", "/"), FileOptions::default())?;
 
         // List all the entities in this directory
         let entities = fs::read_dir(path)?;
@@ -114,7 +116,7 @@ fn archive_from_path(
         let path_rel = path.strip_prefix(output_dir)?.to_str().unwrap();
 
         // Add this file in the archive
-        zip_writer.start_file(path_rel, FileOptions::default())?;
+        zip_writer.start_file(path_rel.replace("\\", "/"), FileOptions::default())?;
 
         // Then write out it's contents
         zip_writer.write_all(contents.as_slice())?;

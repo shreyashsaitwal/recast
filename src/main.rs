@@ -13,14 +13,16 @@ mod util;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "recast", setting(ColoredHelp), setting(ColorAlways))]
-/// Recast makes your old extensions compatible with the latest versions of Kodular and MIT AI2 by
-/// migrating them to new AndroidX libraries.
+/// Recast makes your old extensions compatible with the latest versions of
+/// Kodular and MIT AI2 by migrating them to new AndroidX libraries.
 struct Options {
-    /// Path to an extension file (.aix) or a directory containing multiple extension files.
+    /// Path to an extension file (.aix) or a directory containing multiple
+    /// extension files.
     #[structopt(parse(from_os_str), long, short)]
     input: PathBuf,
 
-    /// Path to a directory where the new recasted extension file(s) should be stored.
+    /// Path to a directory where the new recasted extension file(s) should be
+    /// stored.
     #[structopt(parse(from_os_str), long, short, default_value = ".")]
     output: PathBuf,
 }

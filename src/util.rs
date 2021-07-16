@@ -11,7 +11,8 @@ pub fn data_dir() -> PathBuf {
     Path::new(&env::var(home).unwrap()).join(".recast")
 }
 
-/// Spawns the [program] and passes [args] to it. Exits if the process doesn't completes successfully.
+/// Spawns the [program] and passes [args] to it. Exits if the process doesn't
+/// completes successfully.
 pub fn spawn_process<P, I, S>(program: P, args: I) -> Output
 where
     P: AsRef<OsStr>,

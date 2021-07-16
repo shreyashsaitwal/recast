@@ -5,7 +5,8 @@ use ansi_term::Color::Red;
 
 use crate::util;
 
-/// Replaces the old `classes.jar` with a DEXed version of the jetified `AndroidRuntime.jar`.
+/// Replaces the old `classes.jar` with a DEXed version of the jetified
+/// `AndroidRuntime.jar`.
 pub fn dex(base_dir: &Path) {
     let classes_jar = base_dir.join("classes.jar");
     remove_old_classes_jar(&*classes_jar);
