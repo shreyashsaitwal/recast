@@ -29,7 +29,7 @@ struct Options {
 
 fn main() {
     #[cfg(target_os = "windows")]
-    ansi_term::enable_ansi_support().unwrap();
+    ansi_term::enable_ansi_support().unwrap_or(());
 
     let opts: Options = Options::from_args();
     let output_dir = opts.output;
@@ -82,8 +82,8 @@ fn process(aix_path: &Path, output_dir: &Path) {
         dexer::dex(base_dir.as_path());
         archive::pack_aix(base_dir.as_path(), output_dir);
         println!(
-            "      {} Generated `{}.x.aix`",
-            Green.paint("done"),
+            "  {} Generated `{}.x.aix`",
+            Green.paint("complete"),
             output_dir.join(base_dir.file_name().unwrap()).to_str().unwrap()
         )
     } else {
