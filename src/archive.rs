@@ -182,7 +182,7 @@ fn base_dir_from_aix(archive: ZipArchive<File>) -> PathBuf {
     let ext_props_path = archive
         .file_names()
         .into_iter()
-        .find(|x| x.ends_with(".properties"))
+        .find(|x| x.ends_with("classes.jar"))
         .unwrap();
 
     Path::new(ext_props_path).parent().unwrap().to_owned()
