@@ -24,7 +24,7 @@ where
     if !output.status.success() {
         if !output.stderr.is_empty() {
             eprintln!(
-                "     {} {}",
+                "       {} {}",
                 Red.paint("error"),
                 String::from_utf8(output.stderr)
                     .unwrap()
@@ -34,7 +34,7 @@ where
 
         if !output.stdout.is_empty() {
             eprintln!(
-                "     {} {}",
+                "       {} {}",
                 Red.paint("error"),
                 String::from_utf8(output.stdout)
                     .unwrap()

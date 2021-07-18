@@ -10,19 +10,26 @@ use zip::{ZipArchive, ZipWriter};
 
 use crate::util;
 
+#[derive(PartialEq)]
+pub enum ArchiveType {
+    Aia,
+    Aix,
+}
+
 /// Extracts the extension file and copies it's contents to [build_dir].
-pub fn extract_aix(aix_path: &Path) -> PathBuf {
-    let output_dir = util::data_dir().join("temp");
+pub fn extract_file(path: &Path, archive_type: &ArchiveType) -> Vec<PathBuf> {
+    let file_name = path.file_name().unwrap();
+    let output_dir = util::data_dir().join("temp").join(file_name);
 
-    let aix = open_file(aix_path, false);
+    let file = open_file(path, false);
 
-    let mut archive = match ZipArchive::new(aix) {
+    let mut archive = match ZipArchive::new(file) {
         Ok(zip) => zip,
         Err(err) => {
             eprintln!(
-                "     {} Unable to open {}. Reason: {}",
+                "       {} Unable to open {}. Reason: {}",
                 Red.paint("error"),
-                aix_path.to_str().unwrap(),
+                path.to_str().unwrap(),
                 err.to_string()
             );
             process::exit(1);
@@ -32,57 +39,90 @@ pub fn extract_aix(aix_path: &Path) -> PathBuf {
     // Extract the aix file
     if let Err(err) = archive.extract(&output_dir) {
         eprintln!(
-            "     {} Unable to extract {}. Reason: {}",
+            "       {} Unable to extract {}. Reason: {}",
             Red.paint("error"),
-            aix_path.to_str().unwrap(),
+            path.to_str().unwrap(),
             err.to_string()
         );
         process::exit(1);
     }
 
-    output_dir.join(base_dir_from_aix(archive))
+    match archive_type {
+        ArchiveType::Aia => {
+            let external_comps = output_dir.join("assets").join("external_comps");
+
+            let base_dirs = match fs::read_dir(external_comps) {
+                Ok(res) => res,
+                Err(err) => {
+                    eprintln!(
+                        "       {} Unable to extract {}. Reason: {}",
+                        Red.paint("error"),
+                        path.to_str().unwrap(),
+                        err.to_string()
+                    );
+                    process::exit(1);
+                }
+            };
+
+            let mut res: Vec<PathBuf> = Vec::new();
+            for el in base_dirs {
+                let el = el.unwrap();
+                res.push(el.path());
+            }
+
+            res
+        }
+        ArchiveType::Aix => [output_dir.join(ext_base_dir(archive))].into(),
+    }
 }
 
 /// Packs the new jetified AIX in the given output directory.
-pub fn pack_aix(base_dir: &Path, output_dir: &Path) {
-    let org_name = base_dir.file_name().unwrap().to_str().unwrap();
+pub fn pack_dir(dir_path: &Path, output_dir: &Path, prefix: &str) {
+    let archive_basename = dir_path.file_stem().unwrap().to_str().unwrap();
+    let out_path = output_dir.join(format!("{}{}", archive_basename, prefix));
 
-    // x represents AndroidX...
-    let x_aix_path = output_dir.join(format!("{}.x.aix", org_name));
-
-    // If the ...x.aix already exists in the output dir, delete it.
-    if x_aix_path.exists() {
-        if let Err(err) = fs::remove_file(x_aix_path.as_path()) {
+    // If the ...x.aix/a already exists in the output dir, delete it.
+    if out_path.exists() {
+        if let Err(err) = fs::remove_file(out_path.as_path()) {
             eprintln!(
-                "     {} Unable to create {}. Reason: {}",
+                "       {} Unable to create {}. Reason: {}",
                 Red.paint("error"),
-                x_aix_path.as_path().to_str().unwrap(),
+                out_path.as_path().to_str().unwrap(),
                 err.to_string()
             );
             process::exit(1);
         }
     }
 
-    // Create the new ...x.aix
-    let aix = open_file(x_aix_path.as_path(), true);
+    let file = open_file(out_path.as_path(), true);
 
     // Initialize the zip writer
-    let mut zip_writer = ZipWriter::new(aix);
+    let mut zip_writer = ZipWriter::new(file);
 
     // Create the AIX
-    let result = archive_from_path(&mut zip_writer, base_dir, base_dir.parent().unwrap());
+    let result = if prefix == "_x.aia" {
+        archive_from_path(
+            &mut zip_writer,
+            dir_path,
+            dir_path.parent().unwrap(),
+            &format!("{}.aia", archive_basename),
+        )
+    } else {
+        archive_from_path(&mut zip_writer, dir_path, dir_path.parent().unwrap(), "")
+    };
+
     if let Err(err) = result {
         eprintln!(
-            "     {} Unable to create {}. Reason: {}",
+            "       {} Unable to create {}. Reason: {}",
             Red.paint("error"),
-            x_aix_path.as_path().to_str().unwrap(),
+            out_path.as_path().to_str().unwrap(),
             err.to_string()
         );
         process::exit(1);
     };
 
     // Delete the base directory once the extension is packed
-    fs::remove_dir_all(base_dir).unwrap();
+    fs::remove_dir_all(dir_path).unwrap();
 }
 
 /// Recursively generates an archive from the given [path]
@@ -90,6 +130,7 @@ fn archive_from_path(
     zip_writer: &mut ZipWriter<File>,
     path: &Path,
     output_dir: &Path,
+    exclude_dir_name: &str,
 ) -> Result<(), Box<dyn Error>> {
     if path.is_dir() {
         // Relative path of the directory from the output directory.
@@ -97,26 +138,36 @@ fn archive_from_path(
 
         // `\` must be replaced with `/` otherwise the builder won't be able to
         // locate files.
-        zip_writer.add_directory(path_rel.replace("\\", "/"), FileOptions::default())?;
+        if !path.file_name().unwrap().eq(exclude_dir_name) {
+            zip_writer.add_directory(path_rel.replace("\\", "/"), FileOptions::default())?;
+        }
 
         // List all the entities in this directory
         let entities = fs::read_dir(path)?;
 
-        // Then recursive add all the entities to the archive
+        // Then recursively add all the entities to the archive
         for entity in entities {
             let entity_path = entity?.path();
 
-            archive_from_path(zip_writer, entity_path.as_path(), output_dir)?;
+            archive_from_path(zip_writer, entity_path.as_path(), output_dir, exclude_dir_name)?;
         }
     } else {
         let file = open_file(path, false);
         let contents = contents_as_bytes(file)?;
 
         // Relative path of the file from the output directory.
-        let path_rel = path.strip_prefix(output_dir)?.to_str().unwrap();
+        let path_rel = path
+            .strip_prefix(output_dir)?
+            .to_str()
+            .unwrap()
+            .replace("\\", "/")
+            .replace(&format!("{}/", exclude_dir_name), "");
 
         // Add this file in the archive
-        zip_writer.start_file(path_rel.replace("\\", "/"), FileOptions::default())?;
+        zip_writer.start_file(
+            path_rel,
+            FileOptions::default(),
+        )?;
 
         // Then write out it's contents
         zip_writer.write_all(contents.as_slice())?;
@@ -147,7 +198,7 @@ fn open_file(path: &Path, create_if_req: bool) -> File {
                         Ok(file) => file,
                         Err(err) => {
                             eprintln!(
-                                "     {} Unable to create file {}. Reason: {}",
+                                "       {} Unable to create file {}. Reason: {}",
                                 Red.paint("error"),
                                 path.to_str().unwrap(),
                                 err.to_string()
@@ -157,7 +208,7 @@ fn open_file(path: &Path, create_if_req: bool) -> File {
                     }
                 } else {
                     eprintln!(
-                        "     {} File {} not found",
+                        "       {} File {} not found",
                         Red.paint("error"),
                         path.to_str().unwrap()
                     );
@@ -166,7 +217,7 @@ fn open_file(path: &Path, create_if_req: bool) -> File {
             }
             _ => {
                 eprintln!(
-                    "     {} Unable to open file {}. Reason: {}",
+                    "       {} Unable to open file {}. Reason: {}",
                     Red.paint("error"),
                     path.to_str().unwrap(),
                     err.to_string()
@@ -178,7 +229,7 @@ fn open_file(path: &Path, create_if_req: bool) -> File {
 }
 
 /// Returns the base dir of the extension. This is same as the extension's package.
-fn base_dir_from_aix(archive: ZipArchive<File>) -> PathBuf {
+fn ext_base_dir(archive: ZipArchive<File>) -> PathBuf {
     let ext_props_path = archive
         .file_names()
         .into_iter()

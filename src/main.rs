@@ -2,8 +2,8 @@ use std::path::{Path, PathBuf};
 use std::process;
 
 use ansi_term::Color::{Blue, Cyan, Green, Red, Yellow};
-use structopt::clap::AppSettings::ColorAlways;
-use structopt::clap::AppSettings::ColoredHelp;
+use archive::ArchiveType;
+use structopt::clap::AppSettings::{ColorAlways, ColoredHelp};
 use structopt::StructOpt;
 
 mod archive;
@@ -27,37 +27,57 @@ struct Options {
     output: PathBuf,
 }
 
-fn recast(aix_path: &Path, output_dir: &Path) {
-    println!(
-        "{} `{}`",
-        Cyan.paint("processing"),
-        aix_path.file_name().unwrap().to_str().unwrap()
-    );
+fn recast(file_path: &Path, output_dir: &Path) {
+    let file_name = file_path.file_name().unwrap().to_str().unwrap();
 
-    let base_dir = archive::extract_aix(aix_path);
-    let needs_jetification = jetifier::jetify(base_dir.as_path());
+    println!("{} '{}'", Cyan.paint("  processing"), file_name);
 
-    if needs_jetification {
-        dexer::dex(base_dir.as_path());
-        archive::pack_aix(base_dir.as_path(), output_dir);
-        println!(
-            "  {} Generated `{}.x.aix`",
-            Green.paint("complete"),
-            output_dir
-                .join(base_dir.file_name().unwrap())
-                .to_str()
-                .unwrap()
-        )
+    let archive_type = if file_name.ends_with(".aia") {
+        ArchiveType::Aia
     } else {
-        println!(
-            "      {} No references to support libraries found",
-            Blue.paint("info")
-        );
-        println!(
-            "   {} This extension is already compatible with Kodular; no need to recast it",
-            Yellow.paint("skipped")
-        );
+        ArchiveType::Aix
+    };
+
+    let base_dirs = archive::extract_file(file_path, &archive_type);
+
+    for el in base_dirs {
+        let needs_jetification = jetifier::jetify(el.as_path());
+
+        if needs_jetification {
+            dexer::dex(el.as_path());
+
+            if archive_type == ArchiveType::Aix {
+                archive::pack_dir(el.as_path(), output_dir, ".x.aix");
+                println!(
+                    "    {} Generated '{}.x.aix'",
+                    Green.paint("complete"),
+                    output_dir.join(el.file_name().unwrap()).to_str().unwrap()
+                )
+            }
+        } else if archive_type == ArchiveType::Aix {
+            println!(
+                "        {} No references to support libraries found",
+                Blue.paint("info")
+            );
+            println!(
+                "     {} This extension is already compatible with Kodular; no need to recast it",
+                Yellow.paint("skipped")
+            );
+        }
     }
+
+    if archive_type == ArchiveType::Aia {
+        let file_basename = file_path.file_stem().unwrap();
+        let dir_path = util::data_dir().join("temp").join(file_name);
+
+        archive::pack_dir(&dir_path, output_dir, "_x.aia");
+        println!(
+            "    {} Generated '{}_x.aia'",
+            Green.paint("complete"),
+            output_dir.join(file_basename).to_str().unwrap()
+        )
+    }
+    println!("");
 }
 
 fn main() {
@@ -71,7 +91,7 @@ fn main() {
     if !output_dir.exists() {
         if let Err(err) = std::fs::create_dir_all(&output_dir) {
             eprintln!(
-                "     {} Unable to create output directory {}. Reason: {}",
+                "       {} Unable to create output directory {}. Reason: {}",
                 Red.paint("error"),
                 output_dir.to_str().unwrap(),
                 err.to_string()
@@ -83,17 +103,14 @@ fn main() {
     if input.is_dir() {
         let entities = input.read_dir().unwrap();
 
-        let extensions = entities.filter(|x| {
-            x.as_ref()
-                .unwrap()
-                .file_name()
-                .to_str()
-                .unwrap()
-                .ends_with(".aix")
+        let archives = entities.filter(|x| {
+            let name = x.as_ref().unwrap().file_name();
+            let name = name.to_str().unwrap();
+            name.ends_with(".aix") || name.ends_with(".aia")
         });
 
-        for aix in extensions {
-            let path = aix.unwrap().path();
+        for el in archives {
+            let path = el.unwrap().path();
             recast(path.as_path(), output_dir.as_path());
         }
     } else {

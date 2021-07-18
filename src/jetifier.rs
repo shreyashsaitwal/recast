@@ -5,9 +5,9 @@ use crate::util;
 const NO_REF_WARN: &str = "WARNING: [Main] No references were rewritten.";
 
 /// Jetifies the AndroidRuntime.jar, i.e., migrates any references to the support
-///  library packages to their AndroidX equivalent.
-pub fn jetify(base_dir: &Path) -> bool {
-    let art_jar = base_dir.join("files").join("AndroidRuntime.jar");
+/// library packages to their AndroidX equivalent.
+pub fn jetify(ext_base_dir: &Path) -> bool {
+    let art_jar = ext_base_dir.join("files").join("AndroidRuntime.jar");
 
     let args = [
         "-i",

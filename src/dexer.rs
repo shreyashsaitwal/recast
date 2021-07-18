@@ -38,7 +38,7 @@ fn d8_path() -> PathBuf {
 fn remove_old_classes_jar(classes_jar: &Path) {
     if let Err(err) = std::fs::remove_file(classes_jar) {
         eprintln!(
-            "     {} Unable to delete {}. Reason: {}",
+            "       {} Unable to delete {}. Reason: {}",
             Red.paint("error"),
             classes_jar.to_str().unwrap(),
             err.to_string()
