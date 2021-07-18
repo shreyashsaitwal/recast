@@ -27,6 +27,39 @@ struct Options {
     output: PathBuf,
 }
 
+fn recast(aix_path: &Path, output_dir: &Path) {
+    println!(
+        "{} `{}`",
+        Cyan.paint("processing"),
+        aix_path.file_name().unwrap().to_str().unwrap()
+    );
+
+    let base_dir = archive::extract_aix(aix_path);
+    let needs_jetification = jetifier::jetify(base_dir.as_path());
+
+    if needs_jetification {
+        dexer::dex(base_dir.as_path());
+        archive::pack_aix(base_dir.as_path(), output_dir);
+        println!(
+            "  {} Generated `{}.x.aix`",
+            Green.paint("complete"),
+            output_dir
+                .join(base_dir.file_name().unwrap())
+                .to_str()
+                .unwrap()
+        )
+    } else {
+        println!(
+            "      {} No references to support libraries found",
+            Blue.paint("info")
+        );
+        println!(
+            "   {} This extension is already compatible with Kodular; no need to recast it",
+            Yellow.paint("skipped")
+        );
+    }
+}
+
 fn main() {
     #[cfg(target_os = "windows")]
     ansi_term::enable_ansi_support().unwrap_or(());
@@ -61,36 +94,9 @@ fn main() {
 
         for aix in extensions {
             let path = aix.unwrap().path();
-            process(path.as_path(), output_dir.as_path());
+            recast(path.as_path(), output_dir.as_path());
         }
     } else {
-        process(input.as_path(), output_dir.as_path());
-    }
-}
-
-fn process(aix_path: &Path, output_dir: &Path) {
-    println!(
-        "{} `{}`",
-        Cyan.paint("processing"),
-        aix_path.file_name().unwrap().to_str().unwrap()
-    );
-
-    let base_dir = archive::extract_aix(aix_path);
-    let needs_jetification = jetifier::jetify(base_dir.as_path());
-
-    if needs_jetification {
-        dexer::dex(base_dir.as_path());
-        archive::pack_aix(base_dir.as_path(), output_dir);
-        println!(
-            "  {} Generated `{}.x.aix`",
-            Green.paint("complete"),
-            output_dir.join(base_dir.file_name().unwrap()).to_str().unwrap()
-        )
-    } else {
-        println!(
-            "      {} No references to support libraries found",
-            Blue.paint("info")
-        );
-        println!("   {}", Yellow.paint("skipped"));
+        recast(input.as_path(), output_dir.as_path());
     }
 }
