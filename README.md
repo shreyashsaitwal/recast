@@ -81,7 +81,7 @@ re-importing every recasted extension in your project.
     recast --input you_app.aia
     ```
    (Here, `you_app.aia` is the name of your AIA file)
-4. And there you go! All the extensions in your AIA are now recasted and can be found in the same directory with
+4. And there you go! All the extensions in your AIA are now recasted, and the new AIA can be found in the same directory with
    name `your_app_x.aia`.
 
 > **Note:**
