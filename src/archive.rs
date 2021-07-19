@@ -16,7 +16,9 @@ pub enum ArchiveType {
     Aix,
 }
 
-/// Extracts the extension file and copies it's contents to [build_dir].
+/// Extracts the given file and dumps the contents to a temporary directory.
+/// Returns a vec of [PathBuf]s that corresponds to the base directories of
+/// extensions.
 pub fn extract_file(path: &Path, archive_type: &ArchiveType) -> Vec<PathBuf> {
     let file_name = path.file_name().unwrap();
     let output_dir = util::data_dir().join("temp").join(file_name);
@@ -36,7 +38,7 @@ pub fn extract_file(path: &Path, archive_type: &ArchiveType) -> Vec<PathBuf> {
         }
     };
 
-    // Extract the aix file
+    // Try to extract the archive.
     if let Err(err) = archive.extract(&output_dir) {
         eprintln!(
             "       {} Unable to extract {}. Reason: {}",
@@ -76,7 +78,7 @@ pub fn extract_file(path: &Path, archive_type: &ArchiveType) -> Vec<PathBuf> {
     }
 }
 
-/// Packs the new jetified AIX in the given output directory.
+/// Packs the given [dir_path] as a ZIP archive with a custom [prefix].
 pub fn pack_dir(dir_path: &Path, output_dir: &Path, prefix: &str) {
     let archive_basename = dir_path.file_stem().unwrap().to_str().unwrap();
     let out_path = output_dir.join(format!("{}{}", archive_basename, prefix));
@@ -125,7 +127,7 @@ pub fn pack_dir(dir_path: &Path, output_dir: &Path, prefix: &str) {
     fs::remove_dir_all(dir_path).unwrap();
 }
 
-/// Recursively generates an archive from the given [path]
+/// Recursively generates an archive from the given [path].
 fn archive_from_path(
     zip_writer: &mut ZipWriter<File>,
     path: &Path,
@@ -138,8 +140,10 @@ fn archive_from_path(
 
         // `\` must be replaced with `/` otherwise the builder won't be able to
         // locate files.
+        let path_rel = path_rel.replace("\\", "/");
+
         if !path.file_name().unwrap().eq(exclude_dir_name) {
-            zip_writer.add_directory(path_rel.replace("\\", "/"), FileOptions::default())?;
+            zip_writer.add_directory(path_rel, FileOptions::default())?;
         }
 
         // List all the entities in this directory
@@ -149,7 +153,12 @@ fn archive_from_path(
         for entity in entities {
             let entity_path = entity?.path();
 
-            archive_from_path(zip_writer, entity_path.as_path(), output_dir, exclude_dir_name)?;
+            archive_from_path(
+                zip_writer,
+                entity_path.as_path(),
+                output_dir,
+                exclude_dir_name,
+            )?;
         }
     } else {
         let file = open_file(path, false);
@@ -164,10 +173,7 @@ fn archive_from_path(
             .replace(&format!("{}/", exclude_dir_name), "");
 
         // Add this file in the archive
-        zip_writer.start_file(
-            path_rel,
-            FileOptions::default(),
-        )?;
+        zip_writer.start_file(path_rel, FileOptions::default())?;
 
         // Then write out it's contents
         zip_writer.write_all(contents.as_slice())?;
