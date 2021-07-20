@@ -1,12 +1,12 @@
+use std::{fs, process};
 use std::error::Error;
 use std::fs::File;
 use std::io::{ErrorKind, Read, Write};
 use std::path::{Path, PathBuf};
-use std::{fs, process};
 
 use ansi_term::Color::Red;
-use zip::write::FileOptions;
 use zip::{ZipArchive, ZipWriter};
+use zip::write::FileOptions;
 
 use crate::util;
 
@@ -165,12 +165,15 @@ fn archive_from_path(
         let contents = contents_as_bytes(file)?;
 
         // Relative path of the file from the output directory.
-        let path_rel = path
+        let mut path_rel = path
             .strip_prefix(output_dir)?
             .to_str()
             .unwrap()
-            .replace("\\", "/")
-            .replace(&format!("{}/", exclude_dir_name), "");
+            .replace("\\", "/");
+
+        if !exclude_dir_name.is_empty() {
+            path_rel = path_rel.replace(&format!("{}/", exclude_dir_name), "");
+        }
 
         // Add this file in the archive
         zip_writer.start_file(path_rel, FileOptions::default())?;
