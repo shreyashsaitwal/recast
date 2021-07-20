@@ -80,7 +80,12 @@ pub fn extract_file(path: &Path, archive_type: &ArchiveType) -> Vec<PathBuf> {
 
 /// Packs the given [dir_path] as a ZIP archive with a custom [prefix].
 pub fn pack_dir(dir_path: &Path, output_dir: &Path, prefix: &str) {
-    let archive_basename = dir_path.file_stem().unwrap().to_str().unwrap();
+    let archive_basename = if prefix.eq(".x.aix") {
+        dir_path.file_name().unwrap().to_str().unwrap()
+    } else {
+        dir_path.file_stem().unwrap().to_str().unwrap()
+    };
+
     let out_path = output_dir.join(format!("{}{}", archive_basename, prefix));
 
     // If the ...x.aix/a already exists in the output dir, delete it.
